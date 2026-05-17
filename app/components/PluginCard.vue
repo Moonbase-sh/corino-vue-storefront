@@ -11,7 +11,7 @@ const props = defineProps<{
 
 const product = useProduct(props.productId)
 const cart = useCart()
-const { showCart } = useUi()
+const { showCart, showDownloads } = useUi()
 
 const variation = computed(() => product.value?.defaultVariation || null)
 const currency = computed(() => cart.currency.value)
@@ -39,14 +39,6 @@ function addToCart() {
     return
   cart.addToCart(product.value)
   showCart()
-}
-
-function downloadProduct() {
-  // Navigate to the Moonbase-hosted product page on the tenant; the SDK's
-  // own download flow lives in /account, so we route there for owned users.
-  const config = useRuntimeConfig()
-  const url = `${config.public.moonbaseEndpoint}/products/${props.productId}`
-  window.open(url, '_blank', 'noopener')
 }
 </script>
 
@@ -108,7 +100,7 @@ function downloadProduct() {
           type="button"
           class="add-btn"
           :class="variant"
-          @click="downloadProduct"
+          @click="showDownloads(productId)"
         >
           DOWNLOAD
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -116,7 +108,7 @@ function downloadProduct() {
           </svg>
         </button>
       </div>
-      <div class="trial-row">
+      <div v-if="!owned" class="trial-row">
         <slot name="trial" />
         <span class="trial-note mono">NO CARD · FULL FEATURES</span>
       </div>
