@@ -4,8 +4,32 @@ export default defineNuxtConfig({
 
   ssr: true,
 
+  // Callback / account pages don't benefit from prerendering — they depend on
+  // URL query params (?email=&code=, ?token=, ?subscription_id=) and on
+  // client-side auth state. Serving the SPA shell for these routes means
+  // Vue Router boots against the real URL on the client, so useRoute().query
+  // works as expected. The home page + landing/marketing routes stay
+  // prerendered for SEO + fast first paint.
+  routeRules: {
+    '/login': { ssr: false },
+    '/sign-up': { ssr: false },
+    '/confirm-email': { ssr: false },
+    '/forgot-password': { ssr: false },
+    '/download': { ssr: false },
+    '/subscriptions': { ssr: false },
+    '/activate': { ssr: false },
+    '/order-completed': { ssr: false },
+    '/account/**': { ssr: false },
+  },
+
   nitro: {
     preset: 'github_pages',
+    prerender: {
+      // These routes aren't linked from anywhere on the site (they're reached
+      // from email links only), so the link crawler won't discover them.
+      // List them explicitly so each one gets an index.html SPA shell.
+      routes: ['/sign-up', '/subscriptions'],
+    },
   },
 
   runtimeConfig: {

@@ -8,22 +8,16 @@
         </NuxtLink>
         <p>Two plugins, made carefully, by people who still mix records. Based in Oslo, Norway.</p>
         <div class="footer-email">
-          <svg class="flag" width="14" height="10.18" viewBox="0 0 22 16" aria-label="Norway">
-            <rect width="22" height="16" fill="#BA0C2F" />
-            <rect x="6" width="2" height="16" fill="#fff" />
-            <rect y="7" width="22" height="2" fill="#fff" />
-            <rect x="6.5" width="1" height="16" fill="#00205B" />
-            <rect y="7.5" width="22" height="1" fill="#00205B" />
-          </svg>
+          <span class="flag" aria-label="Norway" role="img">🇳🇴</span>
           hello@corino.audio
         </div>
       </div>
       <div class="footer-col">
         <h4>Plugins</h4>
         <ul>
-          <li><a href="#plugins">HALO Saturator</a></li>
-          <li><a href="#plugins">DRIFT Granular</a></li>
-          <li><a href="#bundle">Studio Bundle</a></li>
+          <li><NuxtLink to="/#plugins">HALO Saturator</NuxtLink></li>
+          <li><NuxtLink to="/#plugins">DRIFT Granular</NuxtLink></li>
+          <li><NuxtLink to="/#bundle">Studio Bundle</NuxtLink></li>
           <li><a href="#">Sound Packs</a></li>
           <li><a href="#">Free Trials</a></li>
         </ul>

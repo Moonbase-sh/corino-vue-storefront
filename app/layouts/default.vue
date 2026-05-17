@@ -3,6 +3,7 @@
     <DemoBanner />
     <SiteNav />
     <slot />
+    <SiteFooter />
     <CartDrawer />
     <LoginModal />
     <TrialDownloadModal />

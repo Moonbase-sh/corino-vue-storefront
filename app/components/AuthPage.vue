@@ -19,7 +19,5 @@ defineProps<{
     <div class="auth-panel">
       <slot />
     </div>
-
-    <SiteFooter />
   </main>
 </template>

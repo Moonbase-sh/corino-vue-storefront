@@ -1,0 +1,46 @@
+<div class="corino-spa-loader" aria-hidden="true">
+  <div class="corino-spa-loader__spinner"></div>
+</div>
+
+<style>
+  :root {
+    color-scheme: dark;
+    --corino-loader-bg: #0c0b0a;
+    --corino-loader-line: #2a2724;
+    --corino-loader-accent: oklch(0.78 0.16 65);
+  }
+
+  html, body {
+    margin: 0;
+    background: var(--corino-loader-bg);
+  }
+
+  .corino-spa-loader {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--corino-loader-bg);
+    z-index: 9999;
+  }
+
+  .corino-spa-loader__spinner {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--corino-loader-line);
+    border-top-color: var(--corino-loader-accent);
+    animation: corino-spinner-spin 0.8s linear infinite;
+  }
+
+  @keyframes corino-spinner-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .corino-spa-loader__spinner {
+      animation-duration: 2s;
+    }
+  }
+</style>

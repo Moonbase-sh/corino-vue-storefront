@@ -18,8 +18,12 @@ const cartCount = computed(() =>
         CORINO
       </NuxtLink>
       <div class="nav-links">
-        <a href="#plugins" class="active">Plugins</a>
-        <a href="#bundle">Bundle</a>
+        <NuxtLink to="/#plugins" class="active">
+          Plugins
+        </NuxtLink>
+        <NuxtLink to="/#bundle">
+          Bundle
+        </NuxtLink>
       </div>
       <div class="nav-right">
         <button v-if="loaded && !user" type="button" class="login-btn" @click="showLogin">

@@ -21,7 +21,5 @@ const token = computed(() => (route.query.token as string | undefined) || null)
         <ActivationManualActivation v-else />
       </div>
     </ClientOnly>
-
-    <SiteFooter />
   </main>
 </template>

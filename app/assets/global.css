@@ -771,9 +771,10 @@ footer {
 }
 
 .flag {
-  display: inline-block; vertical-align: middle;
-  border-radius: 1px;
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
+  display: inline-block;
+  vertical-align: middle;
+  font-size: 14px;
+  line-height: 1;
 }
 
 /* ───────────────── Cart drawer + Login modal ───────────────── */
@@ -1411,6 +1412,12 @@ footer {
   margin-top: 4px;
 }
 .auth-link:hover { color: var(--fg); }
+.order-complete { display: flex; flex-direction: column; gap: 16px; align-items: flex-start; }
+.order-complete-icon {
+  color: var(--ok);
+  display: inline-flex;
+  margin-bottom: 4px;
+}
 @media (max-width: 600px) {
   .auth-page { padding: 32px 20px 0; }
   .auth-panel { padding: 24px; }

@@ -31,8 +31,10 @@ export default defineNuxtPlugin(async (nuxtApp) => {
   else {
     storefront.onCheckoutCompleted(() => {
       const ui = useUi()
+      const router = useRouter()
       ui.hideCart()
       storefront.closeCheckout()
+      router.push('/order-completed')
     })
   }
 

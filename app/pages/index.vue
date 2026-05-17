@@ -144,6 +144,5 @@ const { showTrial } = useUi()
     <BundleSection />
     <FeaturesSection />
     <TrustSection />
-    <SiteFooter />
   </div>
 </template>

@@ -41,13 +41,7 @@ onUnmounted(() => {
     <div class="hero-meta">
       <span class="tag">CORINO STUDIO · EST. 2024</span>
       <span class="mono" style="display: inline-flex; align-items: center; gap: 8px;">
-        <svg class="flag" width="14" height="10.18" viewBox="0 0 22 16" aria-label="Norway">
-          <rect width="22" height="16" fill="#BA0C2F" />
-          <rect x="6" width="2" height="16" fill="#fff" />
-          <rect y="7" width="22" height="2" fill="#fff" />
-          <rect x="6.5" width="1" height="16" fill="#00205B" />
-          <rect y="7.5" width="22" height="1" fill="#00205B" />
-        </svg>
+        <span class="flag" aria-label="Norway" role="img">🇳🇴</span>
         SOUND DESIGN · OSLO, NORWAY
       </span>
     </div>

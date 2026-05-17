@@ -62,7 +62,5 @@ const isStandalone = computed(() => standalonePaths.includes(route.path))
         </div>
       </div>
     </ClientOnly>
-
-    <SiteFooter />
   </main>
 </template>
