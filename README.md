@@ -34,6 +34,18 @@ NUXT_PUBLIC_MOONBASE_ENDPOINT=https://your-tenant.moonbase.sh
 
 The product and bundle IDs (`halo`, `drift`, `duo-bundle`) are hard-coded in `BundleSection.vue`, `CartLine.vue`, and `pages/index.vue`. If you fork this for a different tenant, those are the strings to change.
 
+## Deployment
+
+This repo deploys to GitHub Pages on every push to `main` via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
+
+The workflow runs `npm run generate` (Nuxt static export with the `github_pages` Nitro preset) and uploads `.output/public` as the Pages artifact. The preset writes a `.nojekyll` file and a `404.html` SPA fallback so dynamic routes like `/account/products/[id]` still resolve on hard reload. `public/CNAME` is included for the `corino.moonbase.sh` custom domain.
+
+To deploy your own fork:
+
+1. In repo **Settings → Pages**, set the source to "GitHub Actions".
+2. If you don't want the custom domain, delete `public/CNAME`.
+3. Push to `main`. The action will build, prerender, and publish.
+
 ## Stack
 
 - **[Nuxt 4](https://nuxt.com)** with SSR enabled (the SDK's data round-trips through `useState`)

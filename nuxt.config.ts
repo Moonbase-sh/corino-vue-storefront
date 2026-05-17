@@ -4,6 +4,10 @@ export default defineNuxtConfig({
 
   ssr: true,
 
+  nitro: {
+    preset: 'github_pages',
+  },
+
   runtimeConfig: {
     public: {
       moonbaseEndpoint: 'https://corino-demo.moonbase.sh',
