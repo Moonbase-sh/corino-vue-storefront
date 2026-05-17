@@ -1,8 +1,10 @@
+export type DownloadModalMode = 'trial' | 'owned'
+
 export default function () {
   const state = useState('ui', () => ({
     cartOpen: false,
     loginOpen: false,
-    trialProductId: null as string | null,
+    downloadModal: null as { productId: string, mode: DownloadModalMode } | null,
   }))
 
   return {
@@ -14,7 +16,8 @@ export default function () {
     showLogin: () => { state.value.loginOpen = true },
     hideLogin: () => { state.value.loginOpen = false },
 
-    showTrial: (productId: string) => { state.value.trialProductId = productId },
-    hideTrial: () => { state.value.trialProductId = null },
+    showTrial: (productId: string) => { state.value.downloadModal = { productId, mode: 'trial' } },
+    showDownloads: (productId: string) => { state.value.downloadModal = { productId, mode: 'owned' } },
+    hideDownloadModal: () => { state.value.downloadModal = null },
   }
 }

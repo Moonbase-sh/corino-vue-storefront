@@ -3,7 +3,7 @@ import { useAuth } from '@moonbase.sh/vue'
 
 const route = useRoute()
 const router = useRouter()
-const { forgotPassword, resetPassword } = useAuth()
+const { forgotPassword, resetPassword, signIn } = useAuth()
 
 const linkEmail = computed(() => (route.query.email as string | undefined) || '')
 const linkCode = computed(() => (route.query.code as string | undefined) || '')
@@ -41,7 +41,14 @@ async function submitReset() {
   resetError.value = null
   try {
     await resetPassword(linkEmail.value, newPassword.value, linkCode.value)
-    resetDone.value = true
+    try {
+      await signIn(linkEmail.value, newPassword.value)
+      await router.replace('/account')
+      return
+    }
+    catch {
+      resetDone.value = true
+    }
   }
   catch (err) {
     resetError.value = (err as Error).message

@@ -6,6 +6,6 @@
     <SiteFooter />
     <CartDrawer />
     <LoginModal />
-    <TrialDownloadModal />
+    <ProductDownloadModal />
   </div>
 </template>

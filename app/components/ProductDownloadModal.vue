@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { type Download, type OwnedProduct, Platform, useInventory } from '@moonbase.sh/vue'
 
-const { state, hideTrial } = useUi()
+const { state, hideDownloadModal } = useUi()
 const { getProduct, downloadProduct } = useInventory()
 
 const product = ref<OwnedProduct | null>(null)
 const loading = ref(false)
 const loadError = ref<string | null>(null)
 const downloading = ref<Set<string>>(new Set())
+
+const mode = computed(() => state.value.downloadModal?.mode ?? 'trial')
+const isTrial = computed(() => mode.value === 'trial')
 
 function detectPlatform(): Platform {
   if (typeof navigator === 'undefined')
@@ -40,7 +43,7 @@ function formatBytes(bytes: number) {
   return `${(bytes / 1024 ** i).toFixed(i === 0 ? 0 : 1)} ${units[i]}`
 }
 
-watch(() => state.value.trialProductId, async (id) => {
+watch(() => state.value.downloadModal?.productId, async (id) => {
   if (!id) {
     product.value = null
     loadError.value = null
@@ -77,11 +80,11 @@ async function startDownload(download: Download) {
 
 <template>
   <teleport to="body">
-    <div v-if="state.trialProductId" class="modal-mask" @click="hideTrial">
+    <div v-if="state.downloadModal" class="modal-mask" @click="hideDownloadModal">
       <div class="modal trial-modal" @click.stop>
         <header class="trial-modal-head">
-          <h2>Free trial · 14 days</h2>
-          <button class="close-btn" type="button" aria-label="Close" @click="hideTrial">
+          <h2>{{ isTrial ? 'Free trial · 14 days' : 'Downloads' }}</h2>
+          <button class="close-btn" type="button" aria-label="Close" @click="hideDownloadModal">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
@@ -111,7 +114,12 @@ async function startDownload(download: Download) {
           </div>
 
           <p class="trial-hint">
-            Download the installer for your platform. The plugin runs as a 14-day trial — no card needed, all features unlocked. Sign in inside the plugin to extend with a license.
+            <template v-if="isTrial">
+              Download the installer for your platform. The plugin runs as a 14-day trial — no card needed, all features unlocked. Sign in inside the plugin to extend with a license.
+            </template>
+            <template v-else>
+              Pick the installer for your platform. Sign in inside the plugin if it asks — your license is already on your account.
+            </template>
           </p>
 
           <p v-if="sortedDownloads.length === 0" class="empty">
