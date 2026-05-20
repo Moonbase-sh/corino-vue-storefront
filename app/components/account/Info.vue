@@ -7,6 +7,7 @@ const router = useRouter()
 const name = ref(user.value?.name ?? '')
 const email = ref(user.value?.email ?? '')
 const newsletterOptIn = ref(user.value?.communicationPreferences?.newsletterOptIn ?? false)
+const productUpdatesOptIn = ref(user.value?.communicationPreferences?.productUpdatesOptIn ?? false)
 
 const saving = ref(false)
 const saveError = ref<string | null>(null)
@@ -19,6 +20,7 @@ watch(user, (u) => {
   name.value = u.name ?? ''
   email.value = u.email ?? ''
   newsletterOptIn.value = u.communicationPreferences?.newsletterOptIn ?? false
+  productUpdatesOptIn.value = u.communicationPreferences?.productUpdatesOptIn ?? false
 })
 
 async function save() {
@@ -29,6 +31,7 @@ async function save() {
   try {
     const result = await update(name.value, email.value, undefined, {
       newsletterOptIn: newsletterOptIn.value,
+      productUpdatesOptIn: productUpdatesOptIn.value,
     })
     saveSuccess.value = true
     if (result.needsEmailConfirmationToken)
@@ -86,6 +89,11 @@ async function logOut() {
       <label class="checkbox-row">
         <input v-model="newsletterOptIn" type="checkbox">
         <span>Receive updates and offers by email</span>
+      </label>
+
+      <label class="checkbox-row">
+        <input v-model="productUpdatesOptIn" type="checkbox">
+        <span>Receive product updates by email</span>
       </label>
 
       <button type="submit" class="submit" :disabled="saving">
