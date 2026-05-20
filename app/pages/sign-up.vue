@@ -26,13 +26,16 @@ onMounted(async () => {
   }
   try {
     const result = await confirmAccount(email.value, code.value)
-    if (result?.resetPasswordToken) {
-      confirmedEmail.value = result.email
-      resetPasswordToken.value = result.resetPasswordToken
-      status.value = 'set-password'
-      return
+    switch (result.status) {
+      case 'PasswordSetupRequired':
+        confirmedEmail.value = result.email
+        resetPasswordToken.value = result.resetPasswordToken!
+        status.value = 'set-password'
+        return
+      case 'SignedIn':
+        await router.replace('/account')
+        return
     }
-    await router.replace('/account')
   }
   catch (err) {
     error.value = (err as Error).message
