@@ -3,6 +3,7 @@ import { useCommunicationPreferences } from '@moonbase.sh/vue'
 
 const { subscribe } = useCommunicationPreferences()
 const { state: newsletter, hydrate, markSubscribed } = useNewsletter()
+const { reopen: openCookieSettings } = useCookieConsent()
 
 const email = ref('')
 const submitting = ref(false)
@@ -109,6 +110,11 @@ async function trySubscribe() {
           <li><a href="#">Careers</a></li>
           <li><a href="#">Press</a></li>
           <li><a href="#">Contact</a></li>
+          <li>
+            <button type="button" @click="openCookieSettings">
+              Cookie settings
+            </button>
+          </li>
         </ul>
       </div>
     </div>
