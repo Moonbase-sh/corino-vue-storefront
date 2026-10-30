@@ -834,6 +834,71 @@ footer {
   font-size: 12px;
   margin: 8px 0 0;
 }
+.footer-col button {
+  background: transparent; border: none; padding: 0;
+  color: var(--fg-2); font-size: 13.5px; text-align: left;
+  transition: color 0.15s;
+}
+.footer-col button:hover { color: var(--fg); }
+
+/* ───────────────── Cookie banner ───────────────── */
+.cookie-banner {
+  position: fixed; left: 24px; bottom: 24px;
+  z-index: 35;
+  width: min(380px, calc(100vw - 48px));
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+.cookie-banner h2 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: var(--fg-4);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+  font-weight: 500;
+}
+.cookie-banner p {
+  color: var(--fg-2);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0 0 16px;
+}
+.cookie-banner .current {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--fg-3);
+  margin-top: -8px;
+}
+.cookie-banner .actions { display: flex; gap: 8px; }
+.cookie-banner .actions button {
+  flex: 1;
+  padding: 10px 14px;
+  font-size: 12.5px; font-weight: 600;
+  border-radius: var(--radius);
+}
+.cookie-banner .decline {
+  background: transparent; color: var(--fg);
+  border: 1px solid var(--line-2);
+}
+.cookie-banner .decline:hover { border-color: var(--fg-3); }
+.cookie-banner .accept {
+  background: var(--fg); color: #0a0907;
+  border: 1px solid var(--fg);
+}
+
+.cookie-banner-enter-active, .cookie-banner-leave-active {
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.cookie-banner-enter-from, .cookie-banner-leave-to {
+  opacity: 0; transform: translateY(12px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cookie-banner-enter-active, .cookie-banner-leave-active { transition: none; }
+}
 
 /* ───────────────── Cart drawer + Login modal ───────────────── */
 .drawer-mask {
@@ -1738,4 +1803,5 @@ footer {
   .trust-row { gap: 16px 24px; font-size: 16px; }
   .modal { padding: 24px; }
   .drawer { padding: 20px; }
+  .cookie-banner { left: 12px; bottom: 12px; width: calc(100vw - 24px); }
 }

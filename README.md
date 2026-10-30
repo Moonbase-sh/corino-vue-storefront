@@ -16,6 +16,7 @@ Every flow a plugin shop needs, wired with SDK composables:
 - **Account area** at `/account` with nested Nuxt routes for profile, owned products, and voucher redemption — browser back/forward, deep links, and tab state all work the same way.
 - **Product detail** at `/account/products/[id]` showing OS-aware download buttons (`useInventory().downloadProduct`), device activations with revoke (`revokeActivation`), and external licenses rendered for key codes, file downloads, and iLok deposits.
 - **License activation** at `/activate` covering both activation modes: the `?token=…` online flow via `useActivationRequest`, and the offline machine-file upload via `activateProduct(token, ActivationMethod.Offline)`.
+- **Cookie consent** banner that asks only the visitors the store needs consent from, and tells the SDK their answer with `setAttributionConsent()` so it knows whether to keep the ad click IDs they arrived with.
 
 ## Run it locally
 
@@ -63,6 +64,7 @@ To deploy your own fork:
 │   ├── layouts/default.vue           # nav + page slot + cart drawer + login modal
 │   ├── plugins/moonbase.ts           # SDK boot (see "How it works" below)
 │   ├── composables/useUi.ts          # global cart/login open state
+│   ├── composables/useCookieConsent.ts  # cookie banner state + remembered answer
 │   ├── utils/formatCurrency.ts       # Intl-based money formatter
 │   ├── components/
 │   │   ├── DemoBanner.vue            # "this is a demo" strip
@@ -78,6 +80,7 @@ To deploy your own fork:
 │   │   ├── CartLine.vue              # icon + name + price line
 │   │   ├── LoginModal.vue            # email / password sign-in
 │   │   ├── TrialDownloadModal.vue    # OS-aware free-trial download list
+│   │   ├── CookieBanner.vue          # ad tracking consent, reopened from the footer
 │   │   ├── AuthPage.vue              # shared shell for callback pages
 │   │   ├── account/
 │   │   │   ├── Info.vue              # name / email / password / logout
@@ -118,10 +121,16 @@ Everything flows from one Nuxt plugin and a handful of SDK composables. The SDK 
 ### 1. Plugin boot — `app/plugins/moonbase.ts`
 
 ```ts
+const cookieConsent = useCookieConsent()
+cookieConsent.hydrate()                           // answer from an earlier visit, if any
+
 const storefront = createStorefront(
   nuxtApp.$config.public.moonbaseEndpoint,
   (key, state) => useState(key, () => state),    // SSR-safe state factory
-  { persistUtm: true },
+  {
+    persistUtm: true,
+    attributionConsent: cookieConsent.state.value.answer ?? undefined,
+  },
 )
 
 if (import.meta.server) {
@@ -141,7 +150,7 @@ The SDK accepts a custom state factory — passing Nuxt's `useState` means every
 
 On the server we `await updateStorefront()` so the catalog data is in place before render. On the client we don't need to — the SDK is reactive and will fill in as user actions arrive.
 
-`onCheckoutCompleted` only fires in the browser, so it's inside the `else` branch.
+`onCheckoutCompleted` only fires in the browser, so it's inside the `else` branch. So do the cookie consent hooks, covered [below](#7-cookie-consent).
 
 ### 2. Reactive composables
 
@@ -213,6 +222,30 @@ All callback pages share a small `AuthPage` shell (`app/components/AuthPage.vue`
 ### 6. Deep-link handler
 
 `app/app.vue` checks `route.query.add_product` and `route.query.add_bundle` on mount and adds the matching item to the cart automatically. This is what makes marketing links like `/?add_product=halo` work — drop someone into the page with the product already in their cart and the drawer open. Delete the `onMounted` block if you don't need that.
+
+### 7. Cookie consent
+
+The SDK picks up the UTM tags, referrer and ad click IDs (`gclid`, `fbclid`, `msclkid`, …) a visitor arrives with, and sends them with the cart, checkout and sign-up so sales can be put down to the campaign that brought them. A click ID identifies the visitor's click, so the SDK only keeps one once the visitor has agreed to marketing cookies. Without consent it still keeps the UTM tags, the referring site, and which ad platform the click came from, for the tab.
+
+Who has to be asked is a store setting in Moonbase (Account settings > Storefront > Features > "Ad and campaign tracking": always, only outside the EEA, the UK and Switzerland, or only with cookie consent). The catalog reports the answer for each visitor as `cookieConsentRequired`, and the SDK follows it until you tell it otherwise. This app wires that to a banner:
+
+```ts
+// plugins/moonbase.ts, in the browser
+storefront.onStorefrontUpdated((catalog) => {
+  cookieConsent.state.value.required = catalog.cookieConsentRequired !== false
+})
+
+watch(() => cookieConsent.state.value.answer, (granted) => {
+  if (granted !== null)
+    storefront.setAttributionConsent(granted)
+})
+```
+
+- `CookieBanner.vue` shows when the store needs consent from this visitor and they haven't answered. "Cookie settings" in the footer opens it again, for anyone, so an answer can be changed later.
+- The answer is remembered in `localStorage` and passed to `createStorefront` as `attributionConsent` on the next visit, so the SDK knows it from the first page load.
+- `required` is set from `onStorefrontUpdated`, not from the catalog in the SSR payload: that one was fetched by the server (at build time, on GitHub Pages), so it describes the server's location, not the visitor's.
+
+If your site already has a consent manager (Cookiebot, OneTrust, …), drop the banner and call `storefront.setAttributionConsent(granted)` from its marketing-consent callback instead.
 
 ## Theming
 

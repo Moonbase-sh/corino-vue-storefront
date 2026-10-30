@@ -7,5 +7,8 @@
     <CartDrawer />
     <LoginModal />
     <ProductDownloadModal />
+    <ClientOnly>
+      <CookieBanner />
+    </ClientOnly>
   </div>
 </template>
