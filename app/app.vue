@@ -9,7 +9,7 @@ onMounted(() => {
   if (route.query.add_bundle) {
     const bundle = useBundle(route.query.add_bundle as string)
     if (bundle.value) {
-      cart.addToCart(bundle.value)
+      cart.addToCart(bundle.value, undefined, undefined, { bundleBehaviour: 'replace' })
       showCart()
     }
   }

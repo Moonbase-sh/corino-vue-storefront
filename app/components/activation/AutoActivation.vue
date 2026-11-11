@@ -17,6 +17,7 @@ const {
   fulfilling,
   completing,
   error,
+  isInstalled,
   fulfillLicense,
   fulfillTrial,
 } = useActivationRequest(props.token)
@@ -37,7 +38,11 @@ watch(activationRequest, (req) => {
 
 const storefrontProduct = useProduct(() => activationRequest.value?.product.id ?? '')
 
-const purchasable = computed(() => !!storefrontProduct.value?.defaultVariation)
+const purchasePrice = computed(() => {
+  const amount = storefrontProduct.value?.defaultVariation?.price[cart.currency.value]
+  return amount === undefined ? null : formatMoney(amount, cart.currency.value)
+})
+const purchasable = computed(() => purchasePrice.value !== null)
 const trial = computed(() => activationRequest.value?.trialEligibility)
 const needsNewsletterOptIn = computed(() =>
   !!trial.value?.requiresNewsletterOptIn
@@ -103,7 +108,7 @@ async function logOut() {
         <p>Activating {{ activationRequest.product.name }}…</p>
       </div>
 
-      <div v-else-if="activationRequest.status === ActivationRequestStatus.Completed" class="activation-loader">
+      <div v-else-if="isInstalled" class="activation-loader">
         <h2>Done!</h2>
         <p>Your product is activated. You may close this window and return to the app.</p>
       </div>
@@ -114,7 +119,7 @@ async function logOut() {
           <h3>Option 1 · Purchase product</h3>
           <p>
             Buy a copy of {{ storefrontProduct!.name }} for
-            <strong>{{ formatMoney(storefrontProduct!.defaultVariation!.price[cart.currency.value], cart.currency.value) }}</strong>.
+            <strong>{{ purchasePrice }}</strong>.
           </p>
           <button type="button" class="submit" @click="buy">
             Purchase

@@ -13,40 +13,38 @@ const { showCart } = useUi()
 
 const currency = computed(() => cart.currency.value)
 
+// A price list has an amount per currency the store sells in. Until the catalog has one in the
+// cart's currency, keep the price the page was written with.
+function inCurrency(prices: Record<string, number> | undefined, fallback: string) {
+  const amount = prices?.[currency.value]
+  return amount === undefined ? fallback : formatMoney(amount, currency.value)
+}
+
 // Called from the template, where `halo` and `drift` are already unwrapped to the product
 function price(p: StorefrontProduct | null, fallback: string) {
-  const v = p?.defaultVariation
-  if (!v)
-    return fallback
-  return formatMoney(v.price[currency.value], currency.value)
+  return inCurrency(p?.defaultVariation?.price, fallback)
 }
 function original(p: StorefrontProduct | null, fallback: string) {
-  const v = p?.defaultVariation
-  if (!v)
-    return fallback
-  return formatMoney(v.originalPrice[currency.value], currency.value)
+  return inCurrency(p?.defaultVariation?.originalPrice, fallback)
 }
 
 const bundleVariation = computed(() => bundle.value?.defaultVariation || null)
-const bundlePrice = computed(() => {
-  const v = bundleVariation.value
-  if (!v)
-    return '$249'
-  return formatMoney(v.price[currency.value], currency.value)
-})
+const bundlePrice = computed(() => inCurrency(bundleVariation.value?.price, '$249'))
 const bundleHasDiscount = computed(() => !!bundleVariation.value?.hasDiscount)
 const bundleDiscountTotal = computed(() => {
-  const v = bundleVariation.value
-  if (!v)
+  const original = bundleVariation.value?.originalPrice[currency.value]
+  const price = bundleVariation.value?.price[currency.value]
+  if (original === undefined || price === undefined)
     return '$29'
-  const diff = v.originalPrice[currency.value] - v.price[currency.value]
-  return formatMoney(diff, currency.value)
+  return formatMoney(original - price, currency.value)
 })
 
 function addBundleToCart() {
   if (!bundle.value)
     return
-  cart.addToCart(bundle.value)
+  // 'replace' takes out HALO or DRIFT lines already in the cart, which the bundle includes,
+  // instead of selling them twice
+  cart.addToCart(bundle.value, undefined, undefined, { bundleBehaviour: 'replace' })
   showCart()
 }
 </script>

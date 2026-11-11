@@ -26,21 +26,23 @@ function handleFile(file: File) {
 function handleDrop(event: DragEvent) {
   hovering.value = false
   const files = event.dataTransfer?.files
-  if (!files || files.length !== 1) {
+  const file = files?.[0]
+  if (!file || files.length !== 1) {
     emit('error', new Error('Drop a single machine file.'))
     return
   }
-  handleFile(files[0])
+  handleFile(file)
 }
 
 function handleInput(event: Event) {
   const input = event.target as HTMLInputElement
   const files = input.files
-  if (!files || files.length !== 1) {
+  const file = files?.[0]
+  if (!file || files.length !== 1) {
     emit('error', new Error('Choose a single machine file.'))
     return
   }
-  handleFile(files[0])
+  handleFile(file)
 }
 </script>
 

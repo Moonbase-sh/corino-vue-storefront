@@ -3,8 +3,8 @@ const ANSWER_KEY = 'corino:cookie-consent'
 export default function () {
   const state = useState('cookie-consent', () => ({
     // Whether the store needs this visitor's consent before it keeps the ad
-    // click IDs they arrived with. Set by plugins/moonbase.ts once the browser
-    // has loaded the catalog for this visitor.
+    // click IDs they arrived with. Set by plugins/moonbase.client.ts once the
+    // browser has loaded the catalog for this visitor.
     required: false,
     // The visitor's answer, remembered across visits. `null` until they answer.
     answer: null as boolean | null,

@@ -161,11 +161,8 @@ async function revoke(activation: Activation) {
           {{ product.releaseDescription }}
         </p>
 
-        <p
-          v-if="(product.downloadsNeedsOwnership || product.downloadsNeedsUser) && totalLicenses === 0"
-          class="empty"
-        >
-          This product requires ownership to download.
+        <p v-if="!product.downloadsAllowed" class="empty">
+          {{ product.releaseAccess ? 'Your license doesn\'t cover this release.' : 'This product requires ownership to download.' }}
         </p>
         <p v-else-if="sortedDownloads.length === 0" class="empty">
           No downloadable files for this product.
