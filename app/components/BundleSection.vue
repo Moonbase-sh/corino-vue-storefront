@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { formatMoney, useBundle, useCart, useProduct } from '@moonbase.sh/vue'
+import { formatMoney, type StorefrontProduct, useBundle, useCart, useProduct } from '@moonbase.sh/vue'
 
 const bundleId = 'duo-bundle'
 const haloId = 'halo'
@@ -13,14 +13,15 @@ const { showCart } = useUi()
 
 const currency = computed(() => cart.currency.value)
 
-function price(p: ReturnType<typeof useProduct>, fallback: string) {
-  const v = p.value?.defaultVariation
+// Called from the template, where `halo` and `drift` are already unwrapped to the product
+function price(p: StorefrontProduct | null, fallback: string) {
+  const v = p?.defaultVariation
   if (!v)
     return fallback
   return formatMoney(v.price[currency.value], currency.value)
 }
-function original(p: ReturnType<typeof useProduct>, fallback: string) {
-  const v = p.value?.defaultVariation
+function original(p: StorefrontProduct | null, fallback: string) {
+  const v = p?.defaultVariation
   if (!v)
     return fallback
   return formatMoney(v.originalPrice[currency.value], currency.value)
