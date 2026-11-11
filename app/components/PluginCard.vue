@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useCart, useProduct } from '@moonbase.sh/vue'
+import { formatMoney, useCart, useProduct } from '@moonbase.sh/vue'
 
 const props = defineProps<{
   productId: string
@@ -20,14 +20,14 @@ const price = computed(() => {
   const v = variation.value
   if (!v)
     return props.fallbackPrice
-  return formatCurrency(v.price[currency.value], currency.value)
+  return formatMoney(v.price[currency.value], currency.value)
 })
 
 const originalPrice = computed(() => {
   const v = variation.value
   if (!v)
     return props.fallbackOriginalPrice
-  return formatCurrency(v.originalPrice[currency.value], currency.value)
+  return formatMoney(v.originalPrice[currency.value], currency.value)
 })
 
 const hasDiscount = computed(() => !!variation.value?.hasDiscount)

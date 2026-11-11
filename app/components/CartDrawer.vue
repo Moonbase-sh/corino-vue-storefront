@@ -1,17 +1,12 @@
 <script setup lang="ts">
-import { useCart } from '@moonbase.sh/vue'
+import { formatMoney, useCart } from '@moonbase.sh/vue'
 
 const { state, hideCart } = useUi()
-const { items, total, currency, checkout } = useCart()
+const { items, total, checkout } = useCart()
 const route = useRoute()
 const checkingOut = ref(false)
 
-const totalLabel = computed(() => {
-  const t = total.value
-  if (!t)
-    return formatCurrency(0, currency.value)
-  return formatCurrency(t.amount, t.currency)
-})
+const totalLabel = computed(() => formatMoney(total.value))
 
 async function initCheckout() {
   try {

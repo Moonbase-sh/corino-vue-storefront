@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type BundleLineItem, type ProductLineItem, useBundle, useCart, useProduct } from '@moonbase.sh/vue'
+import { type BundleLineItem, formatMoney, type ProductLineItem, useBundle, useCart, useProduct } from '@moonbase.sh/vue'
 
 const props = defineProps<{
   item: ProductLineItem | BundleLineItem
@@ -7,12 +7,9 @@ const props = defineProps<{
 
 const { removeFromCart, currency } = useCart()
 
-const product = computed(() =>
-  props.item.type === 'Product' ? useProduct(props.item.productId).value : null,
-)
-const bundle = computed(() =>
-  props.item.type === 'Bundle' ? useBundle(props.item.bundleId).value : null,
-)
+// Each gives null for the other kind of line, whose ID the catalog doesn't have
+const product = useProduct(() => props.item.type === 'Product' ? props.item.productId : '')
+const bundle = useBundle(() => props.item.type === 'Bundle' ? props.item.bundleId : '')
 
 const fallbackIcons: Record<string, string> = {
   'halo': '/assets/halo.svg',
@@ -33,7 +30,7 @@ const linePrice = computed(() => {
   const amount = props.item.price?.[currency.value]
   if (typeof amount !== 'number')
     return null
-  return formatCurrency(amount * props.item.quantity, currency.value)
+  return formatMoney(amount * props.item.quantity, currency.value)
 })
 </script>
 

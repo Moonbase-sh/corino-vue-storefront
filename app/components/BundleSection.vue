@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useBundle, useCart, useProduct } from '@moonbase.sh/vue'
+import { formatMoney, useBundle, useCart, useProduct } from '@moonbase.sh/vue'
 
 const bundleId = 'duo-bundle'
 const haloId = 'halo'
@@ -17,13 +17,13 @@ function price(p: ReturnType<typeof useProduct>, fallback: string) {
   const v = p.value?.defaultVariation
   if (!v)
     return fallback
-  return formatCurrency(v.price[currency.value], currency.value)
+  return formatMoney(v.price[currency.value], currency.value)
 }
 function original(p: ReturnType<typeof useProduct>, fallback: string) {
   const v = p.value?.defaultVariation
   if (!v)
     return fallback
-  return formatCurrency(v.originalPrice[currency.value], currency.value)
+  return formatMoney(v.originalPrice[currency.value], currency.value)
 }
 
 const bundleVariation = computed(() => bundle.value?.defaultVariation || null)
@@ -31,7 +31,7 @@ const bundlePrice = computed(() => {
   const v = bundleVariation.value
   if (!v)
     return '$249'
-  return formatCurrency(v.price[currency.value], currency.value)
+  return formatMoney(v.price[currency.value], currency.value)
 })
 const bundleHasDiscount = computed(() => !!bundleVariation.value?.hasDiscount)
 const bundleDiscountTotal = computed(() => {
@@ -39,7 +39,7 @@ const bundleDiscountTotal = computed(() => {
   if (!v)
     return '$29'
   const diff = v.originalPrice[currency.value] - v.price[currency.value]
-  return formatCurrency(diff, currency.value)
+  return formatMoney(diff, currency.value)
 })
 
 function addBundleToCart() {
