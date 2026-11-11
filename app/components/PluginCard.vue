@@ -16,18 +16,15 @@ const { showCart, showDownloads } = useUi()
 const variation = computed(() => product.value?.defaultVariation || null)
 const currency = computed(() => cart.currency.value)
 
+// Until the catalog has a price in the cart's currency, show the one the page was written with
 const price = computed(() => {
-  const v = variation.value
-  if (!v)
-    return props.fallbackPrice
-  return formatMoney(v.price[currency.value], currency.value)
+  const amount = variation.value?.price[currency.value]
+  return amount === undefined ? props.fallbackPrice : formatMoney(amount, currency.value)
 })
 
 const originalPrice = computed(() => {
-  const v = variation.value
-  if (!v)
-    return props.fallbackOriginalPrice
-  return formatMoney(v.originalPrice[currency.value], currency.value)
+  const amount = variation.value?.originalPrice[currency.value]
+  return amount === undefined ? props.fallbackOriginalPrice : formatMoney(amount, currency.value)
 })
 
 const hasDiscount = computed(() => !!variation.value?.hasDiscount)

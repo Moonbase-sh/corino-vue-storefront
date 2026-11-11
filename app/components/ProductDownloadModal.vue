@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { type Download, type OwnedProduct, Platform, useInventory } from '@moonbase.sh/vue'
+import { type Download, type OwnedProduct, Platform, useAuth, useCart, useInventory, useProduct } from '@moonbase.sh/vue'
 
-const { state, hideDownloadModal } = useUi()
+const { state, hideDownloadModal, showLogin, showCart } = useUi()
 const { getProduct, downloadProduct } = useInventory()
+const { user } = useAuth()
+const cart = useCart()
+// The catalog's side of the same product, for buying it from here; follows the modal's product
+const catalogProduct = useProduct(() => state.value.downloadModal?.productId ?? '')
 
 const product = ref<OwnedProduct | null>(null)
 const loading = ref(false)
@@ -43,7 +47,7 @@ function formatBytes(bytes: number) {
   return `${(bytes / 1024 ** i).toFixed(i === 0 ? 0 : 1)} ${units[i]}`
 }
 
-watch(() => state.value.downloadModal?.productId, async (id) => {
+async function load(id: string | undefined) {
   if (!id) {
     product.value = null
     loadError.value = null
@@ -62,7 +66,29 @@ watch(() => state.value.downloadModal?.productId, async (id) => {
   finally {
     loading.value = false
   }
+}
+
+// What a visitor may download depends on who they are, so ask again when they sign in or out
+watch([() => state.value.downloadModal?.productId, () => user.value?.id], ([id]) => load(id))
+
+// `downloadsAllowed` is the answer for this visitor. When it is false, the flags say what is missing.
+const blocked = computed(() => {
+  const p = product.value
+  if (!p || p.downloadsAllowed)
+    return null
+  if (p.downloadsNeedsUser && !user.value)
+    return 'sign-in'
+  if (p.downloadsNeedsOwnership)
+    return 'purchase'
+  return 'unavailable'
 })
+
+function buy() {
+  if (catalogProduct.value)
+    cart.addToCart(catalogProduct.value)
+  hideDownloadModal()
+  showCart()
+}
 
 async function startDownload(download: Download) {
   downloading.value.add(download.key)
@@ -113,7 +139,7 @@ async function startDownload(download: Download) {
             </div>
           </div>
 
-          <p class="trial-hint">
+          <p v-if="!blocked" class="trial-hint">
             <template v-if="isTrial">
               Download the installer for your platform. The plugin runs as a 14-day trial — no card needed, all features unlocked. Sign in inside the plugin to extend with a license.
             </template>
@@ -122,7 +148,24 @@ async function startDownload(download: Download) {
             </template>
           </p>
 
-          <p v-if="sortedDownloads.length === 0" class="empty">
+          <div v-if="blocked" class="download-blocked">
+            <template v-if="blocked === 'sign-in'">
+              <p>Sign in to download {{ product.name }}.</p>
+              <button type="button" class="download-btn primary" @click="showLogin">
+                Sign in
+              </button>
+            </template>
+            <template v-else-if="blocked === 'purchase'">
+              <p>{{ product.name }} downloads come with a license.</p>
+              <button type="button" class="download-btn primary" :disabled="!catalogProduct" @click="buy">
+                Add to cart
+              </button>
+            </template>
+            <p v-else>
+              {{ product.name }} isn't available to download right now.
+            </p>
+          </div>
+          <p v-else-if="sortedDownloads.length === 0" class="empty">
             No downloadable files available for this product yet.
           </p>
           <ul v-else class="download-list">
