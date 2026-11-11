@@ -40,20 +40,19 @@ The product and bundle IDs (`halo`, `drift`, `duo-bundle`) are hard-coded in `Bu
 
 ## Deployment
 
-This repo deploys to GitHub Pages on every push to `main` via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
+The site is hosted on [Vercel](https://vercel.com) (project `corino-vue-storefront` in the Moonbase team) at <https://corino-vue.moonbase.sh>. Every push to `main` deploys to production, and every pull request gets a preview deployment.
 
-The workflow runs `npm run generate` (Nuxt static export with the `github_pages` Nitro preset) and uploads `.output/public` as the Pages artifact. The preset writes a `.nojekyll` file and a `404.html` SPA fallback so dynamic routes like `/account/products/[id]` still resolve on hard reload. `public/CNAME` is included for the `corino.moonbase.sh` custom domain.
+[`vercel.json`](vercel.json) holds the build: `npm ci`, then `npm run generate` (a static site, with Nitro's `static` preset) served from `.output/public`. The home page and the other prerendered pages are files of their own. The account area and the email callback pages render in the browser only (`ssr: false` in `nuxt.config.ts`), and `/account/*` paths that have no file, like `/account/products/[id]`, are served Nuxt's `200.html` shell.
 
-To deploy your own fork:
+Moonbase only answers a site on its allow list, so a preview deployment's `*.vercel.app` address can't load the catalog or sign in until it is added under Account settings > Storefront > "Domain configuration" in the Moonbase account.
 
-1. In repo **Settings → Pages**, set the source to "GitHub Actions".
-2. If you don't want the custom domain, delete `public/CNAME`.
-3. Push to `main`. The action will build, prerender, and publish.
+To deploy your own fork, import the repo into Vercel (the settings come from `vercel.json`), set `NUXT_PUBLIC_MOONBASE_ENDPOINT` to your store if it isn't the one in `nuxt.config.ts`, and add the site's address to your store's domain configuration. Any static host works too: serve `.output/public`, and answer paths with no file with `200.html`.
 
 ## Stack
 
 - **[Nuxt 4](https://nuxt.com)** with SSR enabled (the SDK's data round-trips through `useState`)
-- **[`@moonbase.sh/vue`](https://www.npmjs.com/package/@moonbase.sh/vue)** for catalog data, auth, cart, inventory, order history, vouchers, activation, and price formatting
+- **[`@moonbase.sh/nuxt`](https://www.npmjs.com/package/@moonbase.sh/nuxt)**, which sets up **[`@moonbase.sh/vue`](https://www.npmjs.com/package/@moonbase.sh/vue)** for catalog data, auth, cart, inventory, order history, vouchers, activation, and price formatting
+- Hosted on Vercel as a static site
 - Plain CSS in `app/assets/global.css` — no Tailwind, no preprocessor, no design system
 - Google Fonts (Space Grotesk, JetBrains Mono, Inter)
 

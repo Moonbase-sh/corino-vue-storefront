@@ -32,8 +32,11 @@ export default defineNuxtConfig({
     '/account/**': { ssr: false },
   },
 
+  // A plain static site, the same wherever it is generated: Vercel serves
+  // .output/public as it is (see vercel.json), and 200.html is the shell for
+  // client-only pages that have no file of their own, like /account/products/halo.
   nitro: {
-    preset: 'github_pages',
+    preset: 'static',
     prerender: {
       // These routes aren't linked from anywhere on the site (they're reached
       // from email links only), so the link crawler won't discover them.
