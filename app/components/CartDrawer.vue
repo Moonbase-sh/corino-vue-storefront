@@ -34,7 +34,9 @@ const nextOffer = computed(() => {
 async function initCheckout() {
   try {
     checkingOut.value = true
-    await checkout({ redirect: false, returnUrl: route.path })
+    // 'auto': over the page on a computer, Moonbase's own page on a phone, where Apple Pay and
+    // Google Pay work. The customer comes back to this page; see plugins/moonbase.ts.
+    await checkout({ redirect: 'auto', returnUrl: route.path })
   }
   catch (err) {
     console.error('Could not checkout', err)
