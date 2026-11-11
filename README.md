@@ -65,7 +65,8 @@ To deploy your own fork:
 │   ├── app.vue                       # root + ?add_product=… / ?add_bundle=… deep links
 │   ├── assets/global.css             # all styles
 │   ├── layouts/default.vue           # nav + page slot + cart drawer + login modal
-│   ├── plugins/moonbase.ts           # SDK boot (see "How it works" below)
+│   ├── moonbase.config.ts            # storefront options only the browser knows (cookie answer)
+│   ├── plugins/moonbase.client.ts    # checkout completion + cookie banner hooks
 │   ├── composables/useUi.ts          # global cart/login open state
 │   ├── composables/useCookieConsent.ts  # cookie banner state + remembered answer
 │   ├── components/
@@ -121,50 +122,47 @@ To deploy your own fork:
 
 ## How it works
 
-Everything flows from one Nuxt plugin and a handful of SDK composables. The SDK is installed as a regular npm dependency and registered once at boot; from there, every component pulls live data or fires actions through the composables.
+Everything flows from the `@moonbase.sh/nuxt` module and a handful of SDK composables. The module creates the storefront once at boot; from there, every component pulls live data or fires actions through the composables.
 
-### 1. Plugin boot — `app/plugins/moonbase.ts`
+### 1. Setup: `@moonbase.sh/nuxt`
+
+The [Nuxt module](https://www.npmjs.com/package/@moonbase.sh/nuxt) creates the storefront, so `nuxt.config.ts` only names the store:
 
 ```ts
-export default defineNuxtPlugin({
-  name: 'moonbase',
-  order: -25,                                    // before Nuxt's router, see below
-  async setup(nuxtApp) {
-    const cookieConsent = useCookieConsent()
-    cookieConsent.hydrate()                       // answer from an earlier visit, if any
-
-    const storefront = createStorefront(
-      nuxtApp.$config.public.moonbaseEndpoint,
-      (key, state) => useState(key, () => state), // SSR-safe state factory
-      {
-        persistUtm: true,
-        attributionConsent: cookieConsent.state.value.answer ?? undefined,
-      },
-    )
-
-    if (import.meta.server) {
-      await storefront.updateStorefront()         // hydrate catalog into SSR HTML
-    }
-    else {
-      storefront.onCheckoutCompleted(() => nuxtApp.runWithContext(() => {
-        useUi().hideCart()
-        storefront.closeCheckout()
-        return navigateTo('/order-completed')
-      }))
-    }
-
-    nuxtApp.vueApp.use(storefront)
+export default defineNuxtConfig({
+  modules: ['@moonbase.sh/nuxt'],
+  moonbase: {
+    endpoint: 'https://corino-demo.moonbase.sh',   // NUXT_PUBLIC_MOONBASE_ENDPOINT overrides it
+    persistUtm: true,
   },
 })
 ```
 
-The SDK accepts a custom state factory — passing Nuxt's `useState` means every reactive store the SDK owns (catalog, current user, cart, inventory) is serialized from the server into the client payload. The first SSR paint already has real prices, names, and login state. On the client, the SDK rehydrates from that payload instead of refetching.
+The module creates the storefront with Nuxt's `useState` as its state factory, so the catalog, the signed-in customer and the cart are serialized from the server into the page, and the first paint already has real prices, names and login state. On the server it waits for the catalog before rendering. It auto-imports the composables (`useCart`, `useProduct`, `useAuth`, …) and `formatMoney`; this site still imports them from `@moonbase.sh/vue` explicitly, so each file says where they come from.
 
-On the server we `await updateStorefront()` so the catalog data is in place before render. On the client we don't need to — the SDK is reactive and will fill in as user actions arrive.
+It also creates the storefront before Nuxt's router starts. On a phone, the cart sends the customer to Moonbase's own checkout page, which sends them back with `?mb_intent=checkout&mb_complete=…&mb_endpoint=…`. The storefront reads those as it is created, reopens the finished checkout over the page, and takes them out of the address. Created any later, the router would put them back, and a reload or Back would reopen the finished checkout.
 
-`onCheckoutCompleted` only fires in the browser, so it's inside the `else` branch. So do the cookie consent hooks, covered [below](#7-cookie-consent).
+Options only the browser knows go in [`app/moonbase.config.ts`](app/moonbase.config.ts), which the module calls just before it creates the storefront. Corino passes the visitor's answer to the cookie banner from an earlier visit there (see [Cookie consent](#7-cookie-consent)):
 
-The plugin runs before Nuxt creates its router (`order: -25`, between Nuxt restoring the payload at -30 and creating the router at -20). On a phone, the cart sends the customer to Moonbase's own checkout page, which sends them back with `?mb_intent=checkout&mb_complete=…&mb_endpoint=…`. The storefront reads those as it is created, reopens the finished checkout over the page so `onCheckoutCompleted` fires, and takes them out of the address. A router created first would already hold the address with them, and put them back on its first navigation, so a reload or Back would reopen the finished checkout. For pages rendered on request (as under `nuxt dev`), the plugin also takes them out of the path Nuxt rendered, which the router prefers.
+```ts
+export default defineMoonbaseConfig(() => {
+  const cookieConsent = useCookieConsent()
+  cookieConsent.hydrate()
+  return { attributionConsent: cookieConsent.state.value.answer ?? undefined }
+})
+```
+
+The site's own reactions live in [`app/plugins/moonbase.client.ts`](app/plugins/moonbase.client.ts), which runs after the module and takes the storefront from `useNuxtApp().$moonbase`. `onCheckoutCompleted` fires whether the checkout was open over the page or the customer came back from Moonbase's page, and it is called from a browser event, so `runWithContext` gives `navigateTo` the app's context:
+
+```ts
+const { $moonbase } = useNuxtApp()
+
+$moonbase.onCheckoutCompleted(() => nuxtApp.runWithContext(() => {
+  useUi().hideCart()
+  $moonbase.closeCheckout()
+  return navigateTo('/order-completed')
+}))
+```
 
 ### 2. Reactive composables
 
@@ -255,22 +253,22 @@ The SDK picks up the UTM tags, referrer and ad click IDs (`gclid`, `fbclid`, `ms
 Who has to be asked is a store setting in Moonbase (Account settings > Storefront > Features > "Ad and campaign tracking": always, only outside the EEA, the UK and Switzerland, or only with cookie consent). The catalog reports the answer for each visitor as `cookieConsentRequired`, and the SDK follows it until you tell it otherwise. This app wires that to a banner:
 
 ```ts
-// plugins/moonbase.ts, in the browser
-storefront.onStorefrontUpdated((catalog) => {
+// plugins/moonbase.client.ts
+$moonbase.onStorefrontUpdated((catalog) => {
   cookieConsent.state.value.required = catalog.cookieConsentRequired !== false
 })
 
 watch(() => cookieConsent.state.value.answer, (granted) => {
   if (granted !== null)
-    storefront.setAttributionConsent(granted)
+    $moonbase.setAttributionConsent(granted)
 })
 ```
 
 - `CookieBanner.vue` shows when the store needs consent from this visitor and they haven't answered. "Cookie settings" in the footer opens it again, for anyone, so an answer can be changed later.
-- The answer is remembered in `localStorage` and passed to `createStorefront` as `attributionConsent` on the next visit, so the SDK knows it from the first page load.
-- `required` is set from `onStorefrontUpdated`, not from the catalog in the SSR payload: that one was fetched by the server (at build time, on GitHub Pages), so it describes the server's location, not the visitor's.
+- The answer is remembered in `localStorage` and, on the next visit, passed as `attributionConsent` from `app/moonbase.config.ts` when the storefront is created, so the SDK knows it from the first page load.
+- `required` is set from `onStorefrontUpdated`, not from the catalog in the SSR payload: that one was fetched when the site was generated, so it describes the build server's location, not the visitor's.
 
-If your site already has a consent manager (Cookiebot, OneTrust, …), drop the banner and call `storefront.setAttributionConsent(granted)` from its marketing-consent callback instead.
+If your site already has a consent manager (Cookiebot, OneTrust, …), drop the banner and call `useNuxtApp().$moonbase.setAttributionConsent(granted)` from its marketing-consent callback instead.
 
 ## Theming
 

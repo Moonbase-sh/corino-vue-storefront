@@ -13,8 +13,8 @@ const code = computed(() => (route.query.code as string | undefined) || '')
 const hasConfirmLink = computed(() => !!email.value && !!code.value)
 
 // Moonbase hosts the store's terms and privacy policy
-const termsUrl = `${config.public.moonbaseEndpoint}/terms-of-use`
-const privacyUrl = `${config.public.moonbaseEndpoint}/privacy-policy`
+const termsUrl = `${config.public.moonbase.endpoint}/terms-of-use`
+const privacyUrl = `${config.public.moonbase.endpoint}/privacy-policy`
 
 // Sign-up form
 const form = reactive({ name: '', email: '', password: '', newsletter: false })

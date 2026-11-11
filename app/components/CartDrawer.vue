@@ -35,7 +35,8 @@ async function initCheckout() {
   try {
     checkingOut.value = true
     // 'auto': over the page on a computer, Moonbase's own page on a phone, where Apple Pay and
-    // Google Pay work. The customer comes back to this page; see plugins/moonbase.ts.
+    // Google Pay work. The customer comes back to this page, where @moonbase.sh/nuxt
+    // reopens the finished checkout and plugins/moonbase.client.ts takes it from there.
     await checkout({ redirect: 'auto', returnUrl: route.path })
   }
   catch (err) {

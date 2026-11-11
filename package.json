@@ -12,7 +12,8 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@moonbase.sh/vue": "^3.14.0",
+    "@moonbase.sh/nuxt": "^0.1.0",
+    "@moonbase.sh/vue": "^3.14.1",
     "nuxt": "^4.4.5",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"

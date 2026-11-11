@@ -2,6 +2,16 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   devtools: { enabled: true },
 
+  // Sets up @moonbase.sh/vue: the storefront, its state carried from the
+  // server into the page, and the composables auto-imported. The visitor's
+  // earlier cookie answer, which only the browser knows, is in
+  // app/moonbase.config.ts. NUXT_PUBLIC_MOONBASE_ENDPOINT overrides the endpoint.
+  modules: ['@moonbase.sh/nuxt'],
+  moonbase: {
+    endpoint: 'https://corino-demo.moonbase.sh',
+    persistUtm: true,
+  },
+
   ssr: true,
 
   // Callback / account pages don't benefit from prerendering — they depend on
@@ -29,12 +39,6 @@ export default defineNuxtConfig({
       // from email links only), so the link crawler won't discover them.
       // List them explicitly so each one gets an index.html SPA shell.
       routes: ['/sign-up', '/subscriptions'],
-    },
-  },
-
-  runtimeConfig: {
-    public: {
-      moonbaseEndpoint: 'https://corino-demo.moonbase.sh',
     },
   },
 
