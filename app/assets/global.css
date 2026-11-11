@@ -994,6 +994,38 @@ footer {
   cursor: pointer;
 }
 .drawer .checkout-btn:disabled { opacity: 0.5; cursor: default; }
+.drawer .breakdown { margin: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--fg-2); }
+.drawer .breakdown div { display: flex; justify-content: space-between; gap: 12px; }
+.drawer .breakdown dt { margin: 0; }
+.drawer .breakdown dd { margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; white-space: nowrap; }
+.drawer .tax-note { margin: 0; font-size: 11.5px; color: var(--fg-3); }
+.drawer .offer-progress { display: flex; flex-direction: column; gap: 8px; }
+.drawer .offer-progress p { margin: 0; font-size: 12.5px; color: var(--fg-2); }
+.drawer .offer-progress strong { color: var(--fg); font-weight: 500; }
+.drawer .offer-progress .bar { height: 4px; border-radius: 2px; background: var(--bg-3); overflow: hidden; }
+.drawer .offer-progress .bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--halo) 0%, var(--drift) 100%); }
+
+/* Offers the cart qualifies for (useEligibleOffers) */
+.cart-upsells { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.cart-upsell {
+  display: grid; grid-template-columns: 48px 1fr auto; gap: 12px; align-items: center;
+  padding: 12px; border: 1px dashed var(--line-2); border-radius: var(--radius);
+}
+.cart-upsell-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cart-upsell-meta .offer-name {
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--halo);
+}
+.cart-upsell-meta .name { font-family: 'Space Grotesk', sans-serif; font-size: 15px; }
+.cart-upsell-meta .hint { font-size: 11.5px; color: var(--fg-3); }
+.cart-upsell-buy { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.cart-upsell-buy .price { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--fg-2); white-space: nowrap; }
+.cart-upsell-buy .price s { color: var(--fg-4); margin-right: 4px; }
+.cart-upsell-buy button {
+  background: transparent; color: var(--fg); border: 1px solid var(--line-2);
+  padding: 6px 12px; border-radius: var(--radius); font-size: 12px; font-weight: 500;
+}
+.cart-upsell-buy button:hover { border-color: var(--fg-3); background: var(--bg-3); }
 
 .drawer-mask-enter-active, .drawer-mask-leave-active {
   transition: opacity 0.22s ease;
