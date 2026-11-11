@@ -68,6 +68,9 @@ async function submit() {
         <NuxtLink to="/forgot-password" class="auth-link">
           Forgot your password?
         </NuxtLink>
+        <NuxtLink to="/sign-up" class="auth-link">
+          No account yet? Create one
+        </NuxtLink>
       </form>
     </ClientOnly>
   </AuthPage>

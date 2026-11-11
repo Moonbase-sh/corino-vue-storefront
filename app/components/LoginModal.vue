@@ -60,6 +60,9 @@ async function tryLogin() {
         </button>
 
         <div class="secondary-row">
+          <NuxtLink to="/sign-up" @click="hideLogin">
+            Create an account
+          </NuxtLink>
           <NuxtLink to="/forgot-password" @click="hideLogin">
             Forgot password?
           </NuxtLink>

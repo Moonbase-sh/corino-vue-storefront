@@ -11,8 +11,9 @@ There's also a [single-page HTML version](https://github.com/moonbase-sh/corino-
 Every flow a plugin shop needs, wired with SDK composables:
 
 - **Landing page** with live pricing, discount badges, and an "owned → Download" CTA swap driven by `useProduct` and `useBundle`.
-- **Cart drawer** with product icons, names, line totals, and a checkout button that opens Moonbase's hosted checkout overlay via `cart.checkout()`. Cleans up after itself via `onCheckoutCompleted`.
-- **Login modal** using `useAuth().signIn()`.
+- **Cart drawer** with product icons, names, line totals, and a checkout button: `cart.checkout({ redirect: 'auto' })` opens Moonbase's checkout over the page on a computer, and sends a phone to Moonbase's own checkout page, where Apple Pay and Google Pay work. Cleans up after itself via `onCheckoutCompleted` either way.
+- **Offers in the cart**: the totals broken down with `cart.breakdown` (discounts and the cart offer's saving on their own rows), how far the cart is from the next cart offer with `useCartOffer()` ("Add €71 more for Big Spender"), and item offers it qualifies for with `useEligibleOffers()`, such as switching HALO for the Duo Bundle. A bundle added to the cart replaces the products it includes (`bundleBehaviour: 'replace'`).
+- **Sign-in and sign-up**: a login modal using `useAuth().signIn()`, and a sign-up form at `/sign-up` using `signUp()`, including the email confirmation it can wait on and an address that already has an account from checkout.
 - **Account area** at `/account` with nested Nuxt routes for profile, owned products, purchase history with PDF receipts, and voucher redemption. Browser back/forward, deep links, and tab state all work the same way.
 - **Product detail** at `/account/products/[id]` showing OS-aware download buttons (`useInventory().downloadProduct`), device activations with revoke (`revokeActivation`), and external licenses rendered for key codes, file downloads, and iLok deposits.
 - **License activation** at `/activate` covering both activation modes: the `?token=…` online flow via `useActivationRequest`, and the offline machine-file upload via `activateProduct(token, ActivationMethod.Offline)`.
@@ -24,6 +25,8 @@ Every flow a plugin shop needs, wired with SDK composables:
 npm install
 npm run dev
 ```
+
+`npm run typecheck` type-checks the app with `vue-tsc`.
 
 Then open <http://localhost:3000>.
 
@@ -77,8 +80,9 @@ To deploy your own fork:
 │   │   ├── TrustSection.vue
 │   │   ├── CartDrawer.vue            # right-side cart + checkout button
 │   │   ├── CartLine.vue              # icon + name + price line
+│   │   ├── CartUpsells.vue           # offers the cart qualifies for (useEligibleOffers)
 │   │   ├── LoginModal.vue            # email / password sign-in
-│   │   ├── TrialDownloadModal.vue    # OS-aware free-trial download list
+│   │   ├── ProductDownloadModal.vue  # OS-aware trial + owned downloads, gated on downloadsAllowed
 │   │   ├── CookieBanner.vue          # ad tracking consent, reopened from the footer
 │   │   ├── AuthPage.vue              # shared shell for callback pages
 │   │   ├── account/
@@ -96,7 +100,7 @@ To deploy your own fork:
 │       ├── index.vue                 # landing page
 │       ├── activate.vue              # license activation (auto + manual)
 │       ├── login.vue                 # LogIn callback
-│       ├── sign-up.vue               # ConfirmAccount callback
+│       ├── sign-up.vue               # sign-up form + ConfirmAccount callback
 │       ├── confirm-email.vue         # ConfirmEmail callback
 │       ├── forgot-password.vue       # ResetPassword callback (request + reset)
 │       ├── download.vue              # DownloadProduct callback
@@ -122,29 +126,36 @@ Everything flows from one Nuxt plugin and a handful of SDK composables. The SDK 
 ### 1. Plugin boot — `app/plugins/moonbase.ts`
 
 ```ts
-const cookieConsent = useCookieConsent()
-cookieConsent.hydrate()                           // answer from an earlier visit, if any
+export default defineNuxtPlugin({
+  name: 'moonbase',
+  order: -25,                                    // before Nuxt's router, see below
+  async setup(nuxtApp) {
+    const cookieConsent = useCookieConsent()
+    cookieConsent.hydrate()                       // answer from an earlier visit, if any
 
-const storefront = createStorefront(
-  nuxtApp.$config.public.moonbaseEndpoint,
-  (key, state) => useState(key, () => state),    // SSR-safe state factory
-  {
-    persistUtm: true,
-    attributionConsent: cookieConsent.state.value.answer ?? undefined,
+    const storefront = createStorefront(
+      nuxtApp.$config.public.moonbaseEndpoint,
+      (key, state) => useState(key, () => state), // SSR-safe state factory
+      {
+        persistUtm: true,
+        attributionConsent: cookieConsent.state.value.answer ?? undefined,
+      },
+    )
+
+    if (import.meta.server) {
+      await storefront.updateStorefront()         // hydrate catalog into SSR HTML
+    }
+    else {
+      storefront.onCheckoutCompleted(() => nuxtApp.runWithContext(() => {
+        useUi().hideCart()
+        storefront.closeCheckout()
+        return navigateTo('/order-completed')
+      }))
+    }
+
+    nuxtApp.vueApp.use(storefront)
   },
-)
-
-if (import.meta.server) {
-  await storefront.updateStorefront()             // hydrate catalog into SSR HTML
-}
-else {
-  storefront.onCheckoutCompleted(() => {
-    useUi().hideCart()
-    storefront.closeCheckout()
-  })
-}
-
-nuxtApp.vueApp.use(storefront)
+})
 ```
 
 The SDK accepts a custom state factory — passing Nuxt's `useState` means every reactive store the SDK owns (catalog, current user, cart, inventory) is serialized from the server into the client payload. The first SSR paint already has real prices, names, and login state. On the client, the SDK rehydrates from that payload instead of refetching.
@@ -152,6 +163,8 @@ The SDK accepts a custom state factory — passing Nuxt's `useState` means every
 On the server we `await updateStorefront()` so the catalog data is in place before render. On the client we don't need to — the SDK is reactive and will fill in as user actions arrive.
 
 `onCheckoutCompleted` only fires in the browser, so it's inside the `else` branch. So do the cookie consent hooks, covered [below](#7-cookie-consent).
+
+The plugin runs before Nuxt creates its router (`order: -25`, between Nuxt restoring the payload at -30 and creating the router at -20). On a phone, the cart sends the customer to Moonbase's own checkout page, which sends them back with `?mb_intent=checkout&mb_complete=…&mb_endpoint=…`. The storefront reads those as it is created, reopens the finished checkout over the page so `onCheckoutCompleted` fires, and takes them out of the address. A router created first would already hold the address with them, and put them back on its first navigation, so a reload or Back would reopen the finished checkout. For pages rendered on request (as under `nuxt dev`), the plugin also takes them out of the path Nuxt rendered, which the router prefers.
 
 ### 2. Reactive composables
 
@@ -161,8 +174,10 @@ Every piece of data the UI reads comes from one of these:
 | --- | --- |
 | `useProduct(id)` | `PluginCard.vue`, `CartLine.vue`, `ProductDetail.vue` — live `defaultVariation.price`, `hasDiscount`, `owned`, `iconUrl`, `name` |
 | `useBundle(id)` | `BundleSection.vue` — bundle pricing and discount math |
-| `useCart()` | `SiteNav.vue` (badge), `CartDrawer.vue` (items + `checkout`), button handlers (`addToCart`) |
-| `useAuth()` | `SiteNav.vue`, `LoginModal.vue`, `account/Info.vue` — `user`, `loaded`, `signIn`, `update`, `setPassword`, `signOut` |
+| `useCart()` | `SiteNav.vue` (badge), `CartDrawer.vue` (`items`, `breakdown`, `checkout`), button handlers (`addToCart`) |
+| `useCartOffer()` | `CartDrawer.vue`: the cart offer it is closest to reaching, with its progress |
+| `useEligibleOffers()` | `CartUpsells.vue`: item offers the cart qualifies for but doesn't hold yet |
+| `useAuth()` | `SiteNav.vue`, `LoginModal.vue`, `pages/sign-up.vue`, `account/Info.vue`: `user`, `loaded`, `signIn`, `signUp`, `confirmAccount`, `update`, `setPassword`, `signOut` |
 | `useInventory()` | `account/ProductDetail.vue` — `getProduct`, `downloadProduct`, `getProductActivations`, `revokeActivation`, `getProductLicenses`, `activateProduct` |
 | `useOrders()` | `account/Purchases.vue`: `getOrders` (a page at a time, following `next`), `downloadReceipt` |
 | `useVoucher()` | `account/Redeem.vue` — `redeem(code)` |
@@ -180,8 +195,10 @@ Every user-facing action calls a single SDK method. There's no command layer or 
 | --- | --- |
 | Add product to cart | `cart.addToCart(product.value)` then `useUi().showCart()` |
 | Add bundle to cart | `cart.addToCart(bundle.value)` then `useUi().showCart()` |
-| Start checkout | `cart.checkout({ redirect: false, returnUrl: route.path })` |
+| Start checkout | `cart.checkout({ redirect: 'auto', returnUrl: route.path })` |
 | Sign in | `useAuth().signIn(email, password)` |
+| Sign up | `useAuth().signUp(name, email, password, null, true, true, newsletterOptIn)` |
+| Take an offer | `cart.addToCart(item, variation, offer, { bundleBehaviour: 'replace' })` |
 | Sign out | `useAuth().signOut()` |
 | Update profile | `useAuth().update(name, email, undefined, communicationPreferences)` |
 | Change password | `useAuth().setPassword(oldPassword, newPassword)` |
@@ -217,12 +234,12 @@ Configure the following paths on your tenant — the backend appends them to you
 | `AutoActivation` | `/activate` | `token` | `pages/activate.vue` — auto flow via `useActivationRequest(token)` |
 | `OfflineActivation` | `/activate` | _(none)_ | `pages/activate.vue` — manual machine-file upload via `useInventory().activateProduct(token, ActivationMethod.Offline)` |
 | `LogIn` | `/login` | _(none)_ | `pages/login.vue` — email/password sign-in, redirects to `/account` on success |
-| `ConfirmAccount` | `/sign-up` | `email`, `code` | `pages/sign-up.vue` — calls `useAuth().confirmAccount(email, code)`; offers a "Set a password" button when the response carries a `resetPasswordToken` |
+| `ConfirmAccount` | `/sign-up` | `email`, `code` | `pages/sign-up.vue`: with the link's parameters it calls `useAuth().confirmAccount(email, code)` and asks for a password when the response carries a `resetPasswordToken`; without them it is the sign-up form |
 | `ConfirmEmail` | `/confirm-email` | `email`, `code` | `pages/confirm-email.vue` — calls `useAuth().confirmEmail(email, code)` |
 | `ConfirmEmailChange` | `/account/confirm-email-change` | `email`, `code` | `pages/account/confirm-email-change.vue` — calls `useAuth().confirmEmailChange(email, code)` |
 | `ResetPassword` | `/forgot-password` | `email`, `code` | `pages/forgot-password.vue` — dual mode: shows a "new password" form when the link carries `email` and `code`; otherwise an "enter email" request form that calls `useAuth().forgotPassword(email)` |
 | `DownloadProduct` | `/download` | `product_id`, `version` (optional), `key` (optional) | `pages/download.vue` — redirects authenticated users to `/account/products/[product_id]` where the OS-aware download list lives; prompts sign-in otherwise |
-| `Checkout` | _(leave unset)_ | — | This app uses the embedded checkout overlay opened from the cart drawer (`cart.checkout({ redirect: false })`). The `Checkout` URL is optional — leaving it unset lets the backend fall back to its hosted checkout for any flows that need to resume an order (e.g. abandoned-cart emails) |
+| `Checkout` | _(leave unset)_ | | The cart drawer opens Moonbase's checkout itself (`cart.checkout({ redirect: 'auto' })`). The `Checkout` URL is optional: leaving it unset lets the backend fall back to its hosted checkout for any flows that need to resume an order (such as abandoned-cart emails) |
 | `ManageSubscription` | `/subscriptions` | `subscription_id` | `pages/subscriptions.vue` — loads the subscription via `useInventory().getSubscription(id)` and shows basic detail. Corino doesn't sell subscriptions, so this is a stub — extend it for tenants that do |
 
 All callback pages share a small `AuthPage` shell (`app/components/AuthPage.vue`) for the eyebrow + title + panel layout.
