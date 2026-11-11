@@ -1458,6 +1458,8 @@ footer {
 .download-btn.primary:hover { background: var(--halo); border-color: var(--halo); }
 .download-btn:not(.primary):hover { color: var(--fg); border-color: var(--fg-3); background: var(--bg-3); }
 .download-btn:disabled { opacity: 0.5; cursor: default; }
+.download-blocked { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 8px 0; }
+.download-blocked p { margin: 0; font-size: 13.5px; color: var(--fg-2); line-height: 1.5; }
 
 .activation-row {
   display: grid; grid-template-columns: 2fr 1fr 1fr auto;

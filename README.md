@@ -82,7 +82,7 @@ To deploy your own fork:
 │   │   ├── CartLine.vue              # icon + name + price line
 │   │   ├── CartUpsells.vue           # offers the cart qualifies for (useEligibleOffers)
 │   │   ├── LoginModal.vue            # email / password sign-in
-│   │   ├── TrialDownloadModal.vue    # OS-aware free-trial download list
+│   │   ├── ProductDownloadModal.vue  # OS-aware trial + owned downloads, gated on downloadsAllowed
 │   │   ├── CookieBanner.vue          # ad tracking consent, reopened from the footer
 │   │   ├── AuthPage.vue              # shared shell for callback pages
 │   │   ├── account/
