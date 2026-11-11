@@ -8,6 +8,7 @@ const route = useRoute()
 const tabs = [
   { path: '/account', title: 'Account', exact: true },
   { path: '/account/products', title: 'Products', exact: false },
+  { path: '/account/purchases', title: 'Purchases', exact: true },
   { path: '/account/redeem', title: 'Redeem', exact: true },
 ]
 

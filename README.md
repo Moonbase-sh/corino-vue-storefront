@@ -13,7 +13,7 @@ Every flow a plugin shop needs, wired with SDK composables:
 - **Landing page** with live pricing, discount badges, and an "owned → Download" CTA swap driven by `useProduct` and `useBundle`.
 - **Cart drawer** with product icons, names, line totals, and a checkout button that opens Moonbase's hosted checkout overlay via `cart.checkout()`. Cleans up after itself via `onCheckoutCompleted`.
 - **Login modal** using `useAuth().signIn()`.
-- **Account area** at `/account` with nested Nuxt routes for profile, owned products, and voucher redemption — browser back/forward, deep links, and tab state all work the same way.
+- **Account area** at `/account` with nested Nuxt routes for profile, owned products, purchase history with PDF receipts, and voucher redemption. Browser back/forward, deep links, and tab state all work the same way.
 - **Product detail** at `/account/products/[id]` showing OS-aware download buttons (`useInventory().downloadProduct`), device activations with revoke (`revokeActivation`), and external licenses rendered for key codes, file downloads, and iLok deposits.
 - **License activation** at `/activate` covering both activation modes: the `?token=…` online flow via `useActivationRequest`, and the offline machine-file upload via `activateProduct(token, ActivationMethod.Offline)`.
 - **Cookie consent** banner that asks only the visitors the store needs consent from, and tells the SDK their answer with `setAttributionConsent()` so it knows whether to keep the ad click IDs they arrived with.
@@ -50,7 +50,7 @@ To deploy your own fork:
 ## Stack
 
 - **[Nuxt 4](https://nuxt.com)** with SSR enabled (the SDK's data round-trips through `useState`)
-- **[`@moonbase.sh/vue`](https://www.npmjs.com/package/@moonbase.sh/vue)** for catalog data, auth, cart, inventory, vouchers, and activation
+- **[`@moonbase.sh/vue`](https://www.npmjs.com/package/@moonbase.sh/vue)** for catalog data, auth, cart, inventory, order history, vouchers, activation, and price formatting
 - Plain CSS in `app/assets/global.css` — no Tailwind, no preprocessor, no design system
 - Google Fonts (Space Grotesk, JetBrains Mono, Inter)
 
@@ -65,7 +65,6 @@ To deploy your own fork:
 │   ├── plugins/moonbase.ts           # SDK boot (see "How it works" below)
 │   ├── composables/useUi.ts          # global cart/login open state
 │   ├── composables/useCookieConsent.ts  # cookie banner state + remembered answer
-│   ├── utils/formatCurrency.ts       # Intl-based money formatter
 │   ├── components/
 │   │   ├── DemoBanner.vue            # "this is a demo" strip
 │   │   ├── SiteNav.vue               # auth-aware nav with cart badge
@@ -86,6 +85,7 @@ To deploy your own fork:
 │   │   │   ├── Info.vue              # name / email / password / logout
 │   │   │   ├── Products.vue          # owned products list
 │   │   │   ├── ProductDetail.vue     # downloads + activations + licenses
+│   │   │   ├── Purchases.vue         # order history + PDF receipts
 │   │   │   └── Redeem.vue            # voucher redemption form
 │   │   └── activation/
 │   │       ├── AutoActivation.vue    # ?token= flow (buy / sign in / trial)
@@ -104,6 +104,7 @@ To deploy your own fork:
 │       ├── account.vue               # shell: header + tabs + signed-out gate
 │       └── account/
 │           ├── index.vue             # Account tab
+│           ├── purchases.vue         # Purchases tab
 │           ├── redeem.vue            # Redeem tab
 │           ├── confirm-email-change.vue  # ConfirmEmailChange callback (standalone)
 │           └── products/
@@ -163,8 +164,13 @@ Every piece of data the UI reads comes from one of these:
 | `useCart()` | `SiteNav.vue` (badge), `CartDrawer.vue` (items + `checkout`), button handlers (`addToCart`) |
 | `useAuth()` | `SiteNav.vue`, `LoginModal.vue`, `account/Info.vue` — `user`, `loaded`, `signIn`, `update`, `setPassword`, `signOut` |
 | `useInventory()` | `account/ProductDetail.vue` — `getProduct`, `downloadProduct`, `getProductActivations`, `revokeActivation`, `getProductLicenses`, `activateProduct` |
+| `useOrders()` | `account/Purchases.vue`: `getOrders` (a page at a time, following `next`), `downloadReceipt` |
 | `useVoucher()` | `account/Redeem.vue` — `redeem(code)` |
 | `useActivationRequest(token)` | `activation/AutoActivation.vue` — `fulfillLicense`, `fulfillTrial`, `status`, `licenseEligibility`, `trialEligibility` |
+
+`useProduct`, `useBundle` and `useOffer` also take a ref or a getter and follow it. `CartLine.vue` uses that to look up whichever kind of line it renders, `useProduct(() => props.item.type === 'Product' ? props.item.productId : '')`, and `AutoActivation.vue` to follow the product of the activation request once it loads. Call them once in `setup` rather than inside a `computed`: they find the storefront with `inject()`, which Vue only allows during setup, so a `computed` that calls one throws when something other than the render (a watcher, a click handler) reads it.
+
+Every price on the site is written with the SDK's `formatMoney`, as `formatMoney(amount, currency)` or `formatMoney({ amount, currency })` (`PluginCard.vue`, `BundleSection.vue`, `CartLine.vue`, `CartDrawer.vue`, `AutoActivation.vue`, `account/Purchases.vue`). It writes prices the way Moonbase's checkout does, so the site and the checkout overlay agree, and for a currency `Intl` doesn't know (such as the empty one a cart has before the catalog arrives) it gives the bare amount instead of throwing out of a render.
 
 ### 3. User actions
 
@@ -183,6 +189,7 @@ Every user-facing action calls a single SDK method. There's no command layer or 
 | Revoke an activation | `useInventory().revokeActivation(activation)` |
 | Activate (online) | `useActivationRequest(token).fulfillLicense()` or `.fulfillTrial(optIn)` |
 | Activate (offline) | `useInventory().activateProduct(token, ActivationMethod.Offline)` returns a `data:` URL for the license file |
+| Download a receipt | `useOrders().downloadReceipt(order)` |
 | Redeem voucher | `useVoucher().redeem(code)` |
 
 ### 4. Routes
@@ -193,6 +200,7 @@ Every user-facing action calls a single SDK method. There's no command layer or 
 | `/account` | Profile (name / email / newsletter / change password / log out) |
 | `/account/products` | List of owned products with icon, name, and license count |
 | `/account/products/[id]` | Downloads (with OS detection), device activations with revoke, external licenses (key code / file / iLok) |
+| `/account/purchases` | Completed orders, newest first: date, what was bought, total, refund status, and a PDF receipt for each. "Show more" loads the next page |
 | `/account/redeem` | Voucher code input |
 | `/activate` | License activation. With `?token=…` shows the auto flow; without (or via the toggle) shows the offline machine-file upload flow |
 

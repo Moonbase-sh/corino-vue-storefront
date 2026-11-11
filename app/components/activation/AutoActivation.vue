@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ActivationRequestStatus, useActivationRequest, useAuth, useCart, useProduct } from '@moonbase.sh/vue'
+import { ActivationRequestStatus, formatMoney, useActivationRequest, useAuth, useCart, useProduct } from '@moonbase.sh/vue'
 
 const props = defineProps<{
   token: string
@@ -35,11 +35,7 @@ watch(activationRequest, (req) => {
   }
 }, { deep: true })
 
-const storefrontProduct = computed(() => {
-  if (!activationRequest.value)
-    return null
-  return useProduct(activationRequest.value.product.id).value
-})
+const storefrontProduct = useProduct(() => activationRequest.value?.product.id ?? '')
 
 const purchasable = computed(() => !!storefrontProduct.value?.defaultVariation)
 const trial = computed(() => activationRequest.value?.trialEligibility)
@@ -118,7 +114,7 @@ async function logOut() {
           <h3>Option 1 · Purchase product</h3>
           <p>
             Buy a copy of {{ storefrontProduct!.name }} for
-            <strong>{{ formatCurrency(storefrontProduct!.defaultVariation!.price[cart.currency.value], cart.currency.value) }}</strong>.
+            <strong>{{ formatMoney(storefrontProduct!.defaultVariation!.price[cart.currency.value], cart.currency.value) }}</strong>.
           </p>
           <button type="button" class="submit" @click="buy">
             Purchase
