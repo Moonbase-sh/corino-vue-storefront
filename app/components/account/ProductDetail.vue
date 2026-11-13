@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { type Activation, type Download, type License, type OwnedProduct, Platform, useInventory } from '@moonbase.sh/vue'
+import { type Activation, type Download, type License, type OwnedProduct, Platform, useInventory, useReviews } from '@moonbase.sh/vue'
 
 const props = defineProps<{
   productId: string
 }>()
 
 const { getProduct, downloadProduct, getProductActivations, getProductLicenses, revokeActivation } = useInventory()
+const { enabled: reviewsEnabled } = useReviews()
 
 const product = ref<OwnedProduct | null>(null)
 const loadError = ref<string | null>(null)
@@ -304,6 +305,12 @@ async function revoke(activation: Activation) {
             </div>
           </div>
         </template>
+      </section>
+
+      <!-- Reviews, for a product they bought here or have reviewed -->
+      <section v-if="reviewsEnabled && (product.mayReview || product.reviewed)" class="detail-section">
+        <h4>Your review</h4>
+        <ReviewsYourReview :product-id="product.id" :product-name="product.name" />
       </section>
     </template>
   </div>

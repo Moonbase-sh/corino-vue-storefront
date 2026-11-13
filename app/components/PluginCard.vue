@@ -59,6 +59,7 @@ function addToCart() {
         <h2 class="plugin-name">
           <span :class="`${variant}-gradient`">{{ variant === 'halo' ? 'HALO' : 'DRIFT' }}</span>
         </h2>
+        <ReviewsRatingLine :product-id="productId" />
         <p class="plugin-tagline">
           <slot name="tagline" />
         </p>

@@ -6,7 +6,8 @@
     <SiteFooter />
     <CartDrawer />
     <ProductDownloadModal />
-    <!-- Last, so it opens on top of the download modal, which can ask to sign in -->
+    <ReviewsModal />
+    <!-- Last, so it opens on top of the download and reviews modals, which can ask to sign in -->
     <LoginModal />
     <ClientOnly>
       <CookieBanner />
