@@ -18,6 +18,7 @@ Every flow a plugin shop needs, wired with SDK composables:
 - **Product detail** at `/account/products/[id]` showing OS-aware download buttons (`useInventory().downloadProduct`), device activations with revoke (`revokeActivation`), and external licenses rendered for key codes, file downloads, and iLok deposits.
 - **License activation** at `/activate` covering both activation modes: the `?token=…` online flow via `useActivationRequest`, and the offline machine-file upload via `activateProduct(token, ActivationMethod.Offline)`.
 - **Cookie consent** banner that asks only the visitors the store needs consent from, and tells the SDK their answer with `setAttributionConsent()` so it knows whether to keep the ad click IDs they arrived with.
+- **Product reviews**: each plugin's stars and review count under its name, and a reviews modal with the score, a filter by stars, sorting, "Show more", translations and helpful votes. A customer who bought a plugin here writes, edits and withdraws their review in the same modal or on the product's account page. All of it is `useReviews()`.
 
 ## Run it locally
 
@@ -68,6 +69,8 @@ To deploy your own fork, import the repo into Vercel (the settings come from `ve
 │   ├── plugins/moonbase.client.ts    # checkout completion + cookie banner hooks
 │   ├── composables/useUi.ts          # global cart/login open state
 │   ├── composables/useCookieConsent.ts  # cookie banner state + remembered answer
+│   ├── utils/reviews.ts              # review wording, form checks, terms link
+│   ├── utils/format.ts               # dates and error messages
 │   ├── components/
 │   │   ├── DemoBanner.vue            # "this is a demo" strip
 │   │   ├── SiteNav.vue               # auth-aware nav with cart badge
@@ -91,11 +94,19 @@ To deploy your own fork, import the repo into Vercel (the settings come from `ve
 │   │   │   ├── ProductDetail.vue     # downloads + activations + licenses
 │   │   │   ├── Purchases.vue         # order history + PDF receipts
 │   │   │   └── Redeem.vue            # voucher redemption form
-│   │   └── activation/
-│   │       ├── AutoActivation.vue    # ?token= flow (buy / sign in / trial)
-│   │       ├── ManualActivation.vue  # offline machine-file upload
-│   │       ├── DeviceTokenInput.vue  # drag-and-drop file input
-│   │       └── ProductCard.vue       # product header used by both flows
+│   │   ├── activation/
+│   │   │   ├── AutoActivation.vue    # ?token= flow (buy / sign in / trial)
+│   │   │   ├── ManualActivation.vue  # offline machine-file upload
+│   │   │   ├── DeviceTokenInput.vue  # drag-and-drop file input
+│   │   │   └── ProductCard.vue       # product header used by both flows
+│   │   └── reviews/
+│   │       ├── RatingLine.vue        # stars + count under a plugin's name
+│   │       ├── Modal.vue             # "All reviews" / "Your review" tabs
+│   │       ├── List.vue              # score, star filter, sort, pages of reviews
+│   │       ├── Card.vue              # one review: translation, reply, votes
+│   │       ├── YourReview.vue        # the customer's own, also on the account page
+│   │       ├── Form.vue              # write or edit, with the marketing consent line
+│   │       └── Stars.vue / StarInput.vue
 │   └── pages/
 │       ├── index.vue                 # landing page
 │       ├── activate.vue              # license activation (auto + manual)
@@ -179,6 +190,8 @@ Every piece of data the UI reads comes from one of these:
 | `useOrders()` | `account/Purchases.vue`: `getOrders` (a page at a time, following `next`), `downloadReceipt` |
 | `useVoucher()` | `account/Redeem.vue` — `redeem(code)` |
 | `useActivationRequest(token)` | `activation/AutoActivation.vue` — `fulfillLicense`, `fulfillTrial`, `status`, `licenseEligibility`, `trialEligibility` |
+| `useReviews()` | `reviews/*`, `account/ProductDetail.vue`: `enabled`, `getReviews`, `getMoreReviews`, `getMyReview`, `saveReview`, `withdrawReview`, `voteOnReview` |
+| `useVendor()` | `reviews/List.vue`, `reviews/Form.vue`: the store's name, which signs its replies and the consent line |
 
 `useProduct`, `useBundle` and `useOffer` also take a ref or a getter and follow it. `CartLine.vue` uses that to look up whichever kind of line it renders, `useProduct(() => props.item.type === 'Product' ? props.item.productId : '')`, and `AutoActivation.vue` to follow the product of the activation request once it loads. Call them once in `setup` rather than inside a `computed`: they find the storefront with `inject()`, which Vue only allows during setup, so a `computed` that calls one throws when something other than the render (a watcher, a click handler) reads it.
 
@@ -205,6 +218,10 @@ Every user-facing action calls a single SDK method. There's no command layer or 
 | Activate (offline) | `useInventory().activateProduct(token, ActivationMethod.Offline)` returns a `data:` URL for the license file |
 | Download a receipt | `useOrders().downloadReceipt(order)` |
 | Redeem voucher | `useVoucher().redeem(code)` |
+| Read a product's reviews | `useReviews().getReviews(productId, { sort, stars })`, then `getMoreReviews(next)` |
+| Write or edit a review | `useReviews().saveReview(productId, { rating, title, body, displayName, anonymous, allowUse: true }, existing)` |
+| Withdraw a review | `useReviews().withdrawReview(productId)` |
+| Vote on a review | `useReviews().voteOnReview(productId, reviewId, 'up' \| 'down' \| 'none')` |
 
 ### 4. Routes
 
@@ -268,6 +285,20 @@ watch(() => cookieConsent.state.value.answer, (granted) => {
 - `required` is set from `onStorefrontUpdated`, not from the catalog in the SSR payload: that one was fetched when the site was generated, so it describes the build server's location, not the visitor's.
 
 If your site already has a consent manager (Cookiebot, OneTrust, …), drop the banner and call `useNuxtApp().$moonbase.setAttributionConsent(granted)` from its marketing-consent callback instead.
+
+### 8. Reviews
+
+Reviews stay hidden until the store takes them: turn on "Product reviews" under Account settings > Storefront > Features in Moonbase. `useReviews().enabled` follows that setting, and everything on the site that shows reviews checks it.
+
+- **The score comes with the catalog.** Each product's `rating` (the average, the count, and how many reviews have each number of stars) is part of the catalog, so the prerendered page already has the stars under HALO and DRIFT (`components/reviews/RatingLine.vue`). `hasRating(rating)` says whether there's a score to show: a product with no published reviews has none.
+- **The reviews load when the modal opens** (`components/reviews/List.vue`): `getReviews(productId, { sort, stars })` for the first page and `getMoreReviews(next)` for each "Show more". They load again when the visitor signs in or out, since each review says how the reader voted and whether it's their own. A vote comes back with the review's new totals, so the list isn't read again.
+- **Only customers who bought a product here can review it.** For whoever is signed in, the catalog's `mayReview` says whether they may and `reviewed` whether they have a review standing, and the site offers "Write a review" or "Your review" only then. `getMyReview(productId)` says where their review stands (being checked, published, not published, or asking for help, which reviews aren't for) and whether they may change it now (`components/reviews/YourReview.vue`).
+- **Posting needs the reviewer's agreement.** `saveReview(productId, review, existing)` sends `allowUse: true`, which lets the store use the review in its marketing, so the form says so next to its button and links the "Reviews" section of the store's terms (`<store>/terms-of-use#reviews`). `existing` is true once they have a review, in whatever state: a second one is refused.
+- **A new review is checked before it shows**, usually within a minute, so the site asks `getMyReview` again every few seconds until it has been, then refreshes the catalog (`$moonbase.updateStorefront()`) for the new score.
+
+A review in another language comes with an English translation, shown unless the reader's browser reads the original, with a switch between the two. The wording of every review state follows Moonbase's own review screens, and lives in `utils/reviews.ts` with the form's checks against `REVIEW_LIMITS`.
+
+Review-request emails link to Moonbase's own review page, not to this site, so there's no callback page for them.
 
 ## Theming
 
